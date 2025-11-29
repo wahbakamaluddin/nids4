@@ -1,8 +1,11 @@
+import queue
 import threading
 from scapy.packet import Packet
 from scapy.sessions import DefaultSession
+import joblib
+import pandas as pd
 
-from writer import output_writer_factory
+from cicflowmeter.writer import output_writer_factory
 
 from .constants import EXPIRED_UPDATE, PACKETS_PER_GC
 from .features.context import PacketDirection, get_packet_flow_key
@@ -14,7 +17,7 @@ class FlowSession(DefaultSession):
     """Creates a list of network flows."""
 
     def __init__(
-        self, output_mode=None, output=None, fields=None, verbose=False, *args, **kwargs
+        self, output_mode=None, output=None, model_path=None, fields=None, verbose=False, *args, **kwargs
     ):
         self.flows: dict[tuple, Flow] = {}
         self.verbose = verbose
@@ -22,12 +25,24 @@ class FlowSession(DefaultSession):
         self.output_mode = output_mode
         self.output = output
         self.logger = get_logger(self.verbose)
+        self.model_path = model_path
         self.packets_count = 0
         self.output_writer = output_writer_factory(self.output_mode, self.output)
 
         # NEW: lock protecting self.flows
         self._lock = threading.Lock()
 
+        self._inference_queue: queue.Queue = queue.Queue()
+        self._model = None
+
+        # Load the model with thread safety
+        try:
+            with self._lock:
+                self._model = joblib.load(self.model_path)
+        except Exception as e:
+            # Log model loading failure
+            pass
+            
         super(FlowSession, self).__init__(*args, **kwargs)
 
     def toPacketList(self):
@@ -130,6 +145,17 @@ class FlowSession(DefaultSession):
             # Write the flow out - writer may perform IO (do it outside the lock)
             data = flow.get_data(self.fields)
 
+            prediction = "N/A"
+            if self._model is not None:
+                try:
+                    X = pd.DataFrame([data])
+                    prediction = self._model.predict(X)[0]
+                except Exception as e:
+                    prediction = "Error"
+
+            data["Prediction"] = prediction
+                
+
             # Now safely delete the entry under lock
             with self._lock:
                 # re-check existence
@@ -146,7 +172,19 @@ class FlowSession(DefaultSession):
             items = list(self.flows.values())
             self.flows.clear()
         for flow in items:
-            self.output_writer.write(flow.get_data(self.fields))
+            data = flow.get_data(self.fields)
+            
+            # Add prediction for remaining flows too
+            prediction = "N/A"
+            if self._model is not None:
+                try:
+                    X = pd.DataFrame([data])
+                    prediction = self._model.predict(X)[0]
+                except Exception:
+                    prediction = "Error"
+            
+            data["Prediction"] = prediction
+            self.output_writer.write(data)
         try:
             del self.output_writer
         except Exception:

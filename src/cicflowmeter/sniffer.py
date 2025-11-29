@@ -3,7 +3,7 @@ import time
 
 from scapy.sendrecv import AsyncSniffer
 
-from flow_session import FlowSession
+from cicflowmeter.flow_session import FlowSession
 import threading
 
 import os
@@ -293,12 +293,12 @@ def main():
         return
 
     sniffer, session = create_sniffer(
-        args.input_file,
-        args.input_interface,
-        args.output_mode,
-        args.output,
-        args.fields,
-        args.verbose,
+        input_file = args.input_file,
+        input_interface = args.input_interface,
+        output_mode = args.output_mode,
+        output = args.output,
+        fields = args.fields,
+        verbose = args.verbose,
     )
     sniffer.start()
 
