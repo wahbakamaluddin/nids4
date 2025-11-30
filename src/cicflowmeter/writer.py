@@ -1,4 +1,5 @@
 import csv
+import datetime
 from typing import Protocol
 
 import requests
@@ -11,7 +12,26 @@ class OutputWriter(Protocol):
 
 class CSVWriter(OutputWriter):
     def __init__(self, output_file) -> None:
-        self.file = open(output_file, "w")
+        
+        output_path = "/home/wahba/Documents/nids5/csv"
+        
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        base_name = f"flows_{date_str}"
+        
+        counter = 0
+        while True:
+            if counter == 0:
+                filename = f"{base_name}.csv"
+            else:
+                filename = f"{base_name}_{counter}.csv"
+            
+            full_path = output_path / filename
+            if not full_path.exists():
+                break
+            counter += 1
+
+        self.output_path = full_path
+        self.file = open(self.output_path, "w")
         self.line = 0
         self.writer = csv.writer(self.file)
 
