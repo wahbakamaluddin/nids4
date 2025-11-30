@@ -47,7 +47,7 @@ class NIDSGUI:
         header_frame.pack(fill=tk.X, pady=(0, 5))
         
         # Title
-        title_label = ttk.Label(header_frame, text="CICFlowMeter Monitor", 
+        title_label = ttk.Label(header_frame, text="Network Intrusion Detection System V1.0", 
                                font=("Segoe UI", 14, "bold"))
         title_label.pack(side=tk.LEFT)
         
@@ -96,12 +96,13 @@ class NIDSGUI:
         self.interface_entry = ttk.Entry(config_frame, width=12)
         self.interface_entry.insert(0, "dummy0")
         self.interface_entry.grid(row=0, column=1, sticky="w", padx=(0, 10))
-        
-        # Output Path - Compact
-        ttk.Label(config_frame, text="Output:").grid(row=0, column=2, sticky="w", padx=(0, 2))
+
+        # Model - Compact
+        ttk.Label(config_frame, text="Model:").grid(row=0, column=2, sticky="w", padx=(0, 2))
         self.model_entry = ttk.Entry(config_frame, width=40)
-        self.model_entry.insert(0, "flows.csv")
+        self.model_entry.insert(0, "/path/to/model.joblib")
         self.model_entry.grid(row=0, column=3, sticky="we", padx=(0, 10))
+        
         
         # Compact Parameters in same row
         ttk.Label(config_frame, text="Timeout:").grid(row=0, column=4, sticky="w", padx=(0, 2))
@@ -154,6 +155,9 @@ class NIDSGUI:
         
         self.throughput_label = ttk.Label(metrics_frame, text="Throughput: -- pkt/s", font=("Consolas", 9))
         self.throughput_label.pack(side=tk.LEFT, padx=8)
+
+        self.packet_count_label = ttk.Label(metrics_frame, text="Packet Count: --", font=("Consolas", 9))
+        self.packet_count_label.pack(side=tk.LEFT, padx=8)
 
         # Status bar for parameter descr/home/wahba/Documents/nids3/src/nids_gui3.pyiptions
         self.status_bar = ttk.Label(main_frame, text="Timeout: Flow expiration | Inactive: Flow inactivity | Feature: Extraction interval", 
@@ -282,7 +286,7 @@ class NIDSGUI:
             return
             
         interface = self.interface_entry.get().strip()
-        output_path = self.model_entry.get().strip()
+        model_path = self.model_entry.get().strip()
         
         if not interface:
             self._update_log_widget("[ERROR] Please specify a network interface\n")
@@ -300,14 +304,9 @@ class NIDSGUI:
             flow_timeout = self.flow_timeout.get()
             activity_timeout = self.activity_timeout.get()
             
-            # Create FlowSession with CSV output
-            if not output_path:
-                output_path = "flows.csv"
-            
             self.session = FlowSession(
                 output_mode="csv",
-                output=output_path,
-                fields=None,
+                model_path=model_path,
                 verbose=True,
             )
             
@@ -330,7 +329,7 @@ class NIDSGUI:
             self.stop_btn.config(state="normal")
             
             self._update_log_widget(f"[*] Started packet capture on interface {interface}\n")
-            self._update_log_widget(f"[*] Saving flows to: {output_path}\n")
+            self._update_log_widget(f"[*] Model path: {self.model_entry.get().strip()}\n")
             self._update_log_widget(f"[*] Parameters - Flow Timeout: {flow_timeout}s, Activity Timeout: {activity_timeout}s\n")
             
             # Start monitoring thread
@@ -449,11 +448,13 @@ class NIDSGUI:
             cpu_text = f"CPU: {self.cpu_usage_value:.1f}%"
             mem_text = f"Memory: {self.memory_usage_value:.1f} MB"
             power_text = f"Power: {power_status}"
+            packet_count_text = f"Packet Count: {self.session.packets_count if self.session else 0}"
             
             self.cpu_label.config(text=cpu_text)
             self.mem_label.config(text=mem_text)
             self.power_label.config(text=power_text)
             self.throughput_label.config(text=throughput_text)
+            self.packet_count_label.config(text=packet_count_text)
             
         except Exception as e:
             print(f"Error updating system metrics: {e}")

@@ -1,5 +1,6 @@
 import csv
-import datetime
+from datetime import datetime
+from pathlib import Path
 from typing import Protocol
 
 import requests
@@ -13,7 +14,7 @@ class OutputWriter(Protocol):
 class CSVWriter(OutputWriter):
     def __init__(self, output_file) -> None:
         
-        output_path = "/home/wahba/Documents/nids5/csv"
+        output_path = Path("/home/wahba/Documents/nids5/csv")
         
         date_str = datetime.now().strftime("%Y-%m-%d")
         base_name = f"flows_{date_str}"
