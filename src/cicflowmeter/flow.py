@@ -47,6 +47,11 @@ class Flow:
         self.active = []
         self.idle = []
 
+        # NEW: TCP termination flag tracking (to match Java CICFlowMeter)
+        self.fwd_fin_count = 0
+        self.bwd_fin_count = 0
+        self.has_rst = False  # RST triggers immediate termination
+        
         self.forward_bulk_last_timestamp = 0
         self.forward_bulk_start_tmp = 0
         self.forward_bulk_count = 0
@@ -280,6 +285,21 @@ class Flow:
         # Update latest timestamp
         self.latest_timestamp = max(packet.time, self.latest_timestamp)
 
+      # NEW: Track TCP termination flags
+        if "TCP" in packet:
+            tcp_flags = str(packet["TCP"].flags)
+            
+            # Track RST flag (immediate termination)
+            if "R" in tcp_flags:
+                self.has_rst = True
+            
+            # Track FIN flags per direction (Java: waits for both directions)
+            if "F" in tcp_flags:
+                if direction == PacketDirection.FORWARD:
+                    self.fwd_fin_count += 1
+                else:
+                    self.bwd_fin_count += 1       
+
         # Update flow bulk and subflow stats
         self.update_flow_bulk(packet, direction)
         self.update_subflow(packet)
@@ -289,6 +309,26 @@ class Flow:
             self.init_window_size[direction] = packet["TCP"].window
 
         # Note: start_timestamp and protocol are set in __init__
+
+    def is_bidirectional_fin(self) -> bool:
+        """Check if both directions have sent FIN (matches Java behavior).
+        
+        Returns:
+            bool: True if both forward and backward FINs received
+        """
+        return self.fwd_fin_count > 0 and self.bwd_fin_count > 0
+
+    def should_terminate(self) -> bool:
+        """Check if flow should be terminated based on TCP flags.
+        
+        Matches Java CICFlowMeter logic:
+        - RST: immediate termination
+        - FIN: terminate when both directions have FIN
+        
+        Returns:
+            bool: True if flow should be terminated
+        """
+        return self.has_rst or self.is_bidirectional_fin()
 
     def update_subflow(self, packet: Packet):
         """Update subflow

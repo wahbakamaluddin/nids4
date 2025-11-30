@@ -73,6 +73,7 @@ class FlowSession(DefaultSession):
         try:
             packet_flow_key = get_packet_flow_key(pkt, direction)
             # Acquire lock only while accessing self.flows
+            # Check for existing flow under lock
             with self._lock:
                 flow = self.flows.get((packet_flow_key, count))
         except Exception:
@@ -87,6 +88,7 @@ class FlowSession(DefaultSession):
             packet_flow_key = get_packet_flow_key(pkt, direction)
             flow = self.flows.get((packet_flow_key, count))
 
+        # Create new flow if none exists
         if flow is None:
             # Create a new flow (we need to insert into dict under lock)
             direction = PacketDirection.FORWARD
@@ -95,6 +97,7 @@ class FlowSession(DefaultSession):
             with self._lock:
                 self.flows[(packet_flow_key, count)] = flow
 
+        # Check for expired flows or FIN packets
         elif (pkt.time - flow.latest_timestamp) > EXPIRED_UPDATE:
             expired = EXPIRED_UPDATE
             while (pkt.time - flow.latest_timestamp) > expired:
@@ -108,17 +111,11 @@ class FlowSession(DefaultSession):
                     with self._lock:
                         self.flows[(packet_flow_key, count)] = flow
                     break
-        elif "F" in pkt.flags:
-            # FIN: add packet and early collect
-            flow.add_packet(pkt, direction)
-            # call garbage_collect with current time; protect with lock inside GC
-            self.garbage_collect(pkt.time)
-            return None
 
         flow.add_packet(pkt, direction)
 
         # call garbage_collect only occasionally; the background GC thread will cover periodic execution
-        if self.packets_count % PACKETS_PER_GC == 0 or flow.duration > 120:
+        if flow.should_terminate() or self.packets_count % PACKETS_PER_GC == 0 or flow.duration > 120:
             self.garbage_collect(pkt.time)
 
         return None
@@ -140,6 +137,16 @@ class FlowSession(DefaultSession):
                 and latest_time - flow.latest_timestamp < EXPIRED_UPDATE
                 and flow.duration < 90
             ):
+                continue
+
+            # Check if flow should be terminated
+            should_terminate = (
+                flow.should_terminate()  # RST or bidirectional FIN
+                or (latest_time is not None and latest_time - flow.latest_timestamp >= EXPIRED_UPDATE)
+                or flow.duration >= 90
+            )
+            
+            if not should_terminate:
                 continue
 
             # Write the flow out - writer may perform IO (do it outside the lock)
