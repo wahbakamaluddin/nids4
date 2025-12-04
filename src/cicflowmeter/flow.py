@@ -189,9 +189,9 @@ class Flow:
             self.flow_interarrival_time.append(packet.time - self.latest_timestamp)
 
         # Update latest timestamp
-        self.latest_timestamp = max(packet.time, self.latest_timestamp)
+        self.latest_timestamp = max(packet.time, self.latest_timestamp) # Compare the current packet time with the existing latest_timestamp to ensure it always reflects the most recent packet time.
 
-      # NEW: Track TCP termination flags
+        # Track TCP termination flags
         if "TCP" in packet:
             tcp_flags = str(packet["TCP"].flags)
             
@@ -246,8 +246,10 @@ class Flow:
         last_timestamp = (
             self.latest_timestamp if self.latest_timestamp != 0 else packet.time
         )
+        # If time gap between packets is larger than CLUMP_TIMEOUT, update active/idle
         if (packet.time - last_timestamp) > constants.CLUMP_TIMEOUT:
-            self.update_active_idle(packet.time - last_timestamp)
+            # Pass
+            self.update_active_idle(packet.time)
 
     def update_active_idle(self, current_time):
         """Adds a packet to the current list of packets.
@@ -256,11 +258,15 @@ class Flow:
             packet: Packet to be update active time
 
         """
+        # if time gap > ACTIVE_TIMEOUT, add the duration as idle time
         if (current_time - self.last_active) > constants.ACTIVE_TIMEOUT:
+            # Update active time as the duration between last_active and start_active
             duration = abs(self.last_active - self.start_active)
             if duration > 0:
                 self.active.append(duration)
+            # Update idle time as the duration between current_time and last_active
             self.idle.append(current_time - self.last_active)
+            # Reset active tracking as current_time
             self.start_active = current_time
             self.last_active = current_time
         else:
@@ -279,12 +285,14 @@ class Flow:
         if direction == PacketDirection.FORWARD:
             if self.backward_bulk_last_timestamp > self.forward_bulk_start_tmp:
                 self.forward_bulk_start_tmp = 0
+            # Initialize new bulk
             if self.forward_bulk_start_tmp == 0:
                 self.forward_bulk_start_tmp = packet.time
                 self.forward_bulk_last_timestamp = packet.time
                 self.forward_bulk_count_tmp = 1
                 self.forward_bulk_size_tmp = payload_size
             else:
+                # If time gap too large, start new bulk for a fresh features
                 if (
                     packet.time - self.forward_bulk_last_timestamp
                 ) > constants.CLUMP_TIMEOUT:
@@ -292,9 +300,11 @@ class Flow:
                     self.forward_bulk_last_timestamp = packet.time
                     self.forward_bulk_count_tmp = 1
                     self.forward_bulk_size_tmp = payload_size
+                # If within bulk time, update bulk features
                 else:  # Add to bulk
                     self.forward_bulk_count_tmp += 1
                     self.forward_bulk_size_tmp += payload_size
+                    # Update bulk features when reaching BULK_BOUND
                     if self.forward_bulk_count_tmp == constants.BULK_BOUND:
                         self.forward_bulk_count += 1
                         self.forward_bulk_packet_count += self.forward_bulk_count_tmp
@@ -302,6 +312,7 @@ class Flow:
                         self.forward_bulk_duration += (
                             packet.time - self.forward_bulk_start_tmp
                         )
+                    
                     elif self.forward_bulk_count_tmp > constants.BULK_BOUND:
                         self.forward_bulk_packet_count += 1
                         self.forward_bulk_size += payload_size
