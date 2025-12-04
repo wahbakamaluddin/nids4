@@ -41,6 +41,7 @@ class FlowSession(DefaultSession):
                 self._model = joblib.load(self.model_path)
         except Exception as e:
             # Log model loading failure
+            self.logger.error(f"Failed to load model from {self.model_path}: {e}")
             pass
             
         super(FlowSession, self).__init__(*args, **kwargs)
@@ -158,7 +159,6 @@ class FlowSession(DefaultSession):
                     prediction = "Error"
 
             data["Prediction"] = prediction
-                
 
             # Now safely delete the entry under lock
             with self._lock:

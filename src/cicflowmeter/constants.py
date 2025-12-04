@@ -1,4 +1,4 @@
-FLOW_TIMEOUT = 120 # 
+FLOW_TIMEOUT = 120 # following cicflowmeter
 CLUMP_TIMEOUT = 1
 ACTIVE_TIMEOUT = 5
 BULK_BOUND = 4
