@@ -7,7 +7,7 @@ import pandas as pd
 
 from cicflowmeter.writer import output_writer_factory
 
-from .constants import EXPIRED_UPDATE, PACKETS_PER_GC
+from .constants import FLOW_TIMEOUT, PACKETS_PER_GC
 from .features.context import PacketDirection, get_packet_flow_key
 from .flow import Flow
 from .utils import get_logger
@@ -98,11 +98,11 @@ class FlowSession(DefaultSession):
                 self.flows[(packet_flow_key, count)] = flow
 
         # Check for expired flows or FIN packets
-        elif (pkt.time - flow.latest_timestamp) > EXPIRED_UPDATE:
-            expired = EXPIRED_UPDATE
+        elif (pkt.time - flow.latest_timestamp) > FLOW_TIMEOUT:
+            expired = FLOW_TIMEOUT
             while (pkt.time - flow.latest_timestamp) > expired:
                 count += 1
-                expired += EXPIRED_UPDATE
+                expired += FLOW_TIMEOUT
                 with self._lock:
                     flow = self.flows.get((packet_flow_key, count))
 
@@ -132,18 +132,15 @@ class FlowSession(DefaultSession):
             # get flow without holding lock to minimize lock hold time
             with self._lock:
                 flow = self.flows.get(k)
-            if not flow or (
-                latest_time is not None
-                and latest_time - flow.latest_timestamp < EXPIRED_UPDATE
-                and flow.duration < 90
-            ):
+
+            if not flow:
                 continue
 
             # Check if flow should be terminated
             should_terminate = (
                 flow.should_terminate()  # RST or bidirectional FIN
-                or (latest_time is not None and latest_time - flow.latest_timestamp >= EXPIRED_UPDATE)
-                or flow.duration >= 90
+                or (latest_time is not None and latest_time - flow.latest_timestamp >= FLOW_TIMEOUT)
+                or flow.duration >= FLOW_TIMEOUT
             )
             
             if not should_terminate:

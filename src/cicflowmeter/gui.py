@@ -31,9 +31,7 @@ class NIDSGUI:
         self.update_interval = 0.1  # 100ms for UI updates
         self.resource_update_interval = 1.0  # 1 second for resource updates
         
-        # Default parameters
-        self.flow_timeout = tk.IntVar(value=120)
-        self.activity_timeout = tk.DoubleVar(value=5)
+        # Default parameters removed: flow_timeout and activity_timeout handled by session defaults
         
         self.setup_gui()
         
@@ -105,28 +103,7 @@ class NIDSGUI:
         
         
         # Compact Parameters in same row
-        ttk.Label(config_frame, text="Timeout:").grid(row=0, column=4, sticky="w", padx=(0, 2))
-        flow_timeout_spinbox = ttk.Spinbox(
-            config_frame, 
-            from_=10, 
-            to=300, 
-            increment=10,
-            textvariable=self.flow_timeout,
-            width=6
-        )
-        flow_timeout_spinbox.grid(row=0, column=5, sticky="w", padx=(0, 8))
-        
-        ttk.Label(config_frame, text="Inactive:").grid(row=0, column=6, sticky="w", padx=(0, 2))
-        inactivity_spinbox = ttk.Spinbox(
-            config_frame, 
-            from_=0.1, 
-            to=10.0, 
-            increment=0.1,
-            textvariable=self.activity_timeout,
-            width=6,
-            format="%.1f"
-        )
-        inactivity_spinbox.grid(row=0, column=7, sticky="w", padx=(0, 8))
+        # Flow timeout and inactivity settings removed from GUI
         
         # Reset button
         ttk.Button(
@@ -160,8 +137,8 @@ class NIDSGUI:
         self.packet_count_label.pack(side=tk.LEFT, padx=8)
 
         # Status bar for parameter descr/home/wahba/Documents/nids3/src/nids_gui3.pyiptions
-        self.status_bar = ttk.Label(main_frame, text="Timeout: Flow expiration | Inactive: Flow inactivity | Feature: Extraction interval", 
-                                   font=("Consolas", 8), foreground="gray")
+        self.status_bar = ttk.Label(main_frame, text="Timeout: Flow expiration | Feature: Extraction interval", 
+                       font=("Consolas", 8), foreground="gray")
         self.status_bar.pack(fill=tk.X, pady=(0, 5))
 
         # Log widget with optimized configuration - now gets more space
@@ -207,9 +184,8 @@ class NIDSGUI:
 
     def reset_parameters(self):
         """Reset parameters to default values"""
-        self.flow_timeout.set(120)
-        self.activity_timeout.set(5)
-        self._update_log_widget("[*] Parameters reset to defaults\n")
+        # Flow timeout/activity timeout removed from GUI; session defaults remain in effect
+        self._update_log_widget("[*] Parameters reset to defaults (no GUI timeouts)\n")
 
     def copy_log(self):
         """Copy log contents to clipboard"""
@@ -241,20 +217,7 @@ class NIDSGUI:
     def validate_parameters(self):
         """Validate all parameters before starting capture"""
         try:
-            flow_timeout = self.flow_timeout.get()
-            activity_timeout = self.activity_timeout.get()
-            
-            if flow_timeout < 10:
-                self._update_log_widget("[ERROR] Flow timeout must be at least 10 seconds\n")
-                return False
-                
-            if activity_timeout <= 0:
-                self._update_log_widget("[ERROR] Inactivity threshold must be positive\n")
-                return False
-                
-            if activity_timeout > flow_timeout:
-                self._update_log_widget("[WARNING] Inactivity threshold is larger than flow timeout\n")
-                
+            # No GUI timeouts to validate; rely on session defaults or configuration
             return True
             
         except tk.TclError:
@@ -300,10 +263,6 @@ class NIDSGUI:
         self._set_ui_state(False)
             
         try:
-            # Get parameter values
-            flow_timeout = self.flow_timeout.get()
-            activity_timeout = self.activity_timeout.get()
-            
             self.session = FlowSession(
                 output_mode="csv",
                 model_path=model_path,
@@ -330,7 +289,7 @@ class NIDSGUI:
             
             self._update_log_widget(f"[*] Started packet capture on interface {interface}\n")
             self._update_log_widget(f"[*] Model path: {self.model_entry.get().strip()}\n")
-            self._update_log_widget(f"[*] Parameters - Flow Timeout: {flow_timeout}s, Activity Timeout: {activity_timeout}s\n")
+            self._update_log_widget("[*] Using session default timeouts\n")
             
             # Start monitoring thread
             threading.Thread(target=self._monitor_capture, daemon=True).start()
