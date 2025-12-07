@@ -25,7 +25,9 @@ class FlowSession(DefaultSession):
         self.output_mode = output_mode
         self.output = output
         self.logger = get_logger(self.verbose)
-        self.model_path = model_path
+        self.model_path1 = model_path
+        self.model_path2 = '/home/wahba/Documents/nids5/test/model/multi_class/knn_multi_class.joblib'
+        self.scaler_path = '/home/wahba/Documents/nids5/test/model/binary/robust_scaler.joblib'
         self.packets_count = 0
         self.output_writer = output_writer_factory(self.output_mode, self.output)
 
@@ -33,12 +35,15 @@ class FlowSession(DefaultSession):
         self._lock = threading.Lock()
 
         self._inference_queue: queue.Queue = queue.Queue()
-        self._model = None
+        self._model1 = None
 
         # Load the model with thread safety
         try:
             with self._lock:
-                self._model = joblib.load(self.model_path)
+                self._model1 = joblib.load(self.model_path1)
+                self._model2 = joblib.load(self.model_path2)
+                self._scaler = joblib.load(self.scaler_path)
+               
         except Exception as e:
             # Log model loading failure
             self.logger.error(f"Failed to load model from {self.model_path}: {e}")
@@ -151,13 +156,21 @@ class FlowSession(DefaultSession):
             data = flow.get_data(self.fields)
 
             prediction = "N/A"
-            if self._model is not None:
+            if self._model1 is not None:
                 try:
-                    X = pd.DataFrame([data])
-                    prediction = self._model.predict(X)[0]
-                except Exception as e:
-                    prediction = "Error"
+                    df = pd.DataFrame([data])
+                    X = self._scaler.transform(df)
 
+                    model1_prediction = self._model1.predict(X)[0]
+
+                    if model1_prediction == "Attack":
+                        model2_prediction = self._model2.predict(X)[0]
+                        prediction = model2_prediction
+                    else:
+                        prediction = model1_prediction
+                except Exception:
+                    prediction = "Error"
+                    
             data["Prediction"] = prediction
 
             # Now safely delete the entry under lock
@@ -180,10 +193,10 @@ class FlowSession(DefaultSession):
             
             # Add prediction for remaining flows too
             prediction = "N/A"
-            if self._model is not None:
+            if self._model1 is not None:
                 try:
                     X = pd.DataFrame([data])
-                    prediction = self._model.predict(X)[0]
+                    prediction = self._model1.predict(X)[0]
                 except Exception:
                     prediction = "Error"
             

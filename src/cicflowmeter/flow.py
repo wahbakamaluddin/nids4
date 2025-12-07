@@ -98,78 +98,21 @@ class Flow:
         idle_stat = get_statistics(self.idle)
 
         data = {
-            "Destination Port": self.dest_port,
-            "Flow Duration": packet_time.get_duration(),
-            
-            "Total Fwd Packets": packet_count.get_total(PacketDirection.FORWARD),
-            "Total Length of Fwd Packets": packet_length.get_total(PacketDirection.FORWARD),
-            
-            "Fwd Packet Length Max": packet_length.get_max(PacketDirection.FORWARD),
-            "Fwd Packet Length Min": packet_length.get_min(PacketDirection.FORWARD),
-            "Fwd Packet Length Mean": packet_length.get_mean(PacketDirection.FORWARD),
-            "Fwd Packet Length Std": packet_length.get_std(PacketDirection.FORWARD),
-            
-            "Bwd Packet Length Max": packet_length.get_max(PacketDirection.REVERSE),
-            "Bwd Packet Length Min": packet_length.get_min(PacketDirection.REVERSE),
-            "Bwd Packet Length Mean": packet_length.get_mean(PacketDirection.REVERSE),
             "Bwd Packet Length Std": packet_length.get_std(PacketDirection.REVERSE),
-            
-            "Flow Bytes/s": flow_bytes.get_rate(),
-            "Flow Packets/s": packet_count.get_rate(),
-            
-            "Flow IAT Mean": flow_iat["mean"] * 1_000_000,
-            "Flow IAT Std": flow_iat["std"] * 1_000_000,
-            "Flow IAT Max": flow_iat["max"] * 1_000_000,
-            "Flow IAT Min": flow_iat["min"] * 1_000_000,
-            
-            "Fwd IAT Total": forward_iat["total"] * 1_000_000,
-            "Fwd IAT Mean": forward_iat["mean"] * 1_000_000,
+            "Bwd Packet Length Mean": packet_length.get_mean(PacketDirection.REVERSE),
+            "Bwd Packet Length Max": packet_length.get_max(PacketDirection.REVERSE),
+            "Total Length of Fwd Packets": packet_length.get_total(PacketDirection.FORWARD),
+            "Fwd Packet Length Max": packet_length.get_max(PacketDirection.FORWARD),
+            "Fwd Packet Length Mean": packet_length.get_mean(PacketDirection.FORWARD),
             "Fwd IAT Std": forward_iat["std"] * 1_000_000,
-            "Fwd IAT Max": forward_iat["max"] * 1_000_000,
-            "Fwd IAT Min": forward_iat["min"] * 1_000_000,
-            
-            "Bwd IAT Total": backward_iat["total"] * 1_000_000,
-            "Bwd IAT Mean": backward_iat["mean"] * 1_000_000,
-            "Bwd IAT Std": backward_iat["std"] * 1_000_000,
-            "Bwd IAT Max": backward_iat["max"] * 1_000_000,
-            "Bwd IAT Min": backward_iat["min"] * 1_000_000,
-            
-            "Fwd Header Length": flow_bytes.get_forward_header_bytes(),
-            "Bwd Header Length": flow_bytes.get_reverse_header_bytes(),
-            
-            "Fwd Packets/s": packet_count.get_rate(PacketDirection.FORWARD),
-            "Bwd Packets/s": packet_count.get_rate(PacketDirection.REVERSE),
-            
-            "Min Packet Length": packet_length.get_min(),
-            "Max Packet Length": packet_length.get_max(),
-            "Packet Length Mean": packet_length.get_mean(),
-            "Packet Length Std": packet_length.get_std(),
-            "Packet Length Variance": packet_length.get_var(),
-            
-            "FIN Flag Count": flag_count.count("FIN"),
-            "PSH Flag Count": flag_count.count("PSH"),
-            "ACK Flag Count": flag_count.count("ACK"),
-            
-            "Average Packet Size": packet_length.get_avg(),
-            
-            "Subflow Fwd Bytes": flow_bytes.get_bytes_per_bulk(PacketDirection.FORWARD),
-            "Init_Win_bytes_forward": self.init_window_size[PacketDirection.FORWARD],
-            "Init_Win_bytes_backward": self.init_window_size[PacketDirection.REVERSE],
-            
-            "act_data_pkt_fwd": packet_count.has_payload(PacketDirection.FORWARD),
-            "min_seg_size_forward": flow_bytes.get_min_forward_header_bytes(),
-            
-            "Active Mean": active_stat["mean"] * 1_000_000,
-            "Active Max": active_stat["max"] * 1_000_000,
-            "Active Min": active_stat["min"] * 1_000_000,
-            
-            "Idle Mean": idle_stat["mean"] * 1_000_000,
-            "Idle Max": idle_stat["max"] * 1_000_000,
-            "Idle Min": idle_stat["min"] * 1_000_000
+            "Total Fwd Packets": packet_count.get_total(PacketDirection.FORWARD),
+            "Fwd Packet Length Std": packet_length.get_std(PacketDirection.FORWARD),
+            "Flow IAT Max": flow_iat["max"] * 1_000_000,
+            "Flow Bytes/s": flow_bytes.get_rate(),
+            "Flow IAT Std": flow_iat["std"] * 1_000_000,
+            "Bwd Packet Length Min": packet_length.get_min(PacketDirection.REVERSE),
+            "Fwd IAT Total": forward_iat["total"] * 1_000_000
         }
-
-        if include_fields is not None:
-            data = {k: v for k, v in data.items() if k in include_fields}
 
         return data
 
