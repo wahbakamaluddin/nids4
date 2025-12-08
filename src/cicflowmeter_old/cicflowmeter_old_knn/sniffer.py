@@ -3,7 +3,7 @@ import time
 
 from scapy.sendrecv import AsyncSniffer
 
-from cicflowmeter_xgb_rf.flow_session import FlowSession
+from cicflowmeter_old_knn.flow_session import FlowSession
 import threading
 
 import os

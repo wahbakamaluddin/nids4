@@ -6,8 +6,8 @@ import time
 import psutil
 from collections import deque
 from scapy.sendrecv import AsyncSniffer
-from cicflowmeter_xgb_rf.flow_session import FlowSession
-from cicflowmeter_xgb_rf.sniffer import _start_periodic_gc
+from cicflowmeter_xgb_rf1.flow_session import FlowSession
+from cicflowmeter_xgb_rf1.sniffer import _start_periodic_gc
 
 class NIDSGUI:
     def __init__(self):
@@ -266,6 +266,7 @@ class NIDSGUI:
             self.session = FlowSession(
                 output_mode="csv",
                 model_path1=model_path1,
+                update_log_widget=self._update_log_widget,
                 verbose=True,
             )
             
@@ -326,10 +327,10 @@ class NIDSGUI:
                     with self.session._lock:
                         self.flow_count = len(self.session.flows)
                     
-                    # Log status periodically
-                    if current_packet_count % 1000 == 0 and current_packet_count > 0:
-                        log_entry = f"[*] Processed {current_packet_count} packets, {self.flow_count} active flows\n"
-                        self.log_queue.append(log_entry)
+                    # # Log status periodically
+                    # if current_packet_count % 1000 == 0 and current_packet_count > 0:
+                    #     log_entry = f"[*] Processed {current_packet_count} packets, {self.flow_count} active flows\n"
+                    #     self.log_queue.append(log_entry)
                     
                     # Update for next iteration
                     last_packet_count = current_packet_count

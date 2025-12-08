@@ -6,8 +6,9 @@ import time
 import psutil
 from collections import deque
 from scapy.sendrecv import AsyncSniffer
-from cicflowmeter_knn.flow_session import FlowSession
-from cicflowmeter_knn.sniffer import _start_periodic_gc
+from cicflowmeter_old_knn.flow_session import FlowSession
+from cicflowmeter_old_knn.sniffer import _start_periodic_gc
+
 
 class NIDSGUI:
     def __init__(self):
@@ -98,7 +99,7 @@ class NIDSGUI:
         # Model - Compact
         ttk.Label(config_frame, text="Model:").grid(row=0, column=2, sticky="w", padx=(0, 2))
         self.model_entry = ttk.Entry(config_frame, width=40)
-        self.model_entry.insert(0, "/path/to/model.joblib")
+        self.model_entry.insert(0, "/home/wahba/Documents/models_anacletu/knn_model.joblib")
         self.model_entry.grid(row=0, column=3, sticky="we", padx=(0, 10))
         
         
@@ -249,7 +250,7 @@ class NIDSGUI:
             return
             
         interface = self.interface_entry.get().strip()
-        model_path1 = self.model_entry.get().strip()
+        model_path = self.model_entry.get().strip()
         
         if not interface:
             self._update_log_widget("[ERROR] Please specify a network interface\n")
@@ -265,7 +266,7 @@ class NIDSGUI:
         try:
             self.session = FlowSession(
                 output_mode="csv",
-                model_path1=model_path1,
+                model_path=model_path,
                 update_log_widget=self._update_log_widget,
                 verbose=True,
             )
@@ -327,7 +328,7 @@ class NIDSGUI:
                     with self.session._lock:
                         self.flow_count = len(self.session.flows)
                     
-                    # Log status periodically
+                    # # Log status periodically
                     # if current_packet_count % 1000 == 0 and current_packet_count > 0:
                     #     log_entry = f"[*] Processed {current_packet_count} packets, {self.flow_count} active flows\n"
                     #     self.log_queue.append(log_entry)
