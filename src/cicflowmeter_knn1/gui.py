@@ -98,7 +98,7 @@ class NIDSGUI:
         # Model - Compact
         ttk.Label(config_frame, text="Model:").grid(row=0, column=2, sticky="w", padx=(0, 2))
         self.model_entry = ttk.Entry(config_frame, width=40)
-        self.model_entry.insert(0, "/home/wahba/Documents/nids5/src/test/model/binary/knn_binary.joblib")
+        self.model_entry.insert(0, "/home/wahba/Documents/nids5/test/model/binary/knn_binary.joblib")
         self.model_entry.grid(row=0, column=3, sticky="we", padx=(0, 10))
         
         

@@ -47,7 +47,7 @@ class FlowSession(DefaultSession):
                
         except Exception as e:
             # Log model loading failure
-            self.logger.error(f"Failed to load model from {self.model_path}: {e}")
+            self.logger.error(f"Failed to load model from {self.model_path1}: {e}")
             pass
             
         super(FlowSession, self).__init__(*args, **kwargs)
@@ -167,6 +167,9 @@ class FlowSession(DefaultSession):
                     if model1_prediction == "Attack":
                         model2_prediction = self._model2.predict(X)[0]
                         prediction = model2_prediction
+                        if prediction == "DoS" or prediction == "DDoS":
+                            if flow.dest_port == 21 or flow.dest_port == 22:
+                                prediction = "Brute Force"
                         self.update_log_widget(f"[!][!][!] Detected Attack: {prediction} from IP Address {flow.src_ip}\n")
                     else:
                         prediction = model1_prediction
