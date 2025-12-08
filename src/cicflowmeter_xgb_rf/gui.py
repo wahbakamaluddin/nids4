@@ -6,8 +6,8 @@ import time
 import psutil
 from collections import deque
 from scapy.sendrecv import AsyncSniffer
-from cicflowmeter.flow_session import FlowSession
-from cicflowmeter.sniffer import _start_periodic_gc
+from cicflowmeter_xgb_rf.flow_session import FlowSession
+from cicflowmeter_xgb_rf.sniffer import _start_periodic_gc
 
 class NIDSGUI:
     def __init__(self):
@@ -249,7 +249,7 @@ class NIDSGUI:
             return
             
         interface = self.interface_entry.get().strip()
-        model_path = self.model_entry.get().strip()
+        model_path1 = self.model_entry.get().strip()
         
         if not interface:
             self._update_log_widget("[ERROR] Please specify a network interface\n")
@@ -265,7 +265,7 @@ class NIDSGUI:
         try:
             self.session = FlowSession(
                 output_mode="csv",
-                model_path=model_path,
+                model_path1=model_path1,
                 verbose=True,
             )
             

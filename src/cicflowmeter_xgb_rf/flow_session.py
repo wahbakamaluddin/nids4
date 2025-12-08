@@ -5,7 +5,7 @@ from scapy.sessions import DefaultSession
 import joblib
 import pandas as pd
 
-from cicflowmeter.writer import output_writer_factory
+from cicflowmeter_xgb_rf.writer import output_writer_factory
 
 from .constants import FLOW_TIMEOUT, PACKETS_PER_GC
 from .features.context import PacketDirection, get_packet_flow_key
@@ -17,7 +17,7 @@ class FlowSession(DefaultSession):
     """Creates a list of network flows."""
 
     def __init__(
-        self, output_mode=None, output=None, model_path=None, fields=None, verbose=False, *args, **kwargs
+        self, output_mode=None, output=None, model_path1=None, fields=None, verbose=False, update_log_widget=None, *args, **kwargs
     ):
         self.flows: dict[tuple, Flow] = {}
         self.verbose = verbose
@@ -25,12 +25,13 @@ class FlowSession(DefaultSession):
         self.output_mode = output_mode
         self.output = output
         self.logger = get_logger(self.verbose)
-        self.model_path1 = model_path
-        self.model_path2 = '/home/wahba/Documents/nids5/test/model/multi_class/knn_multi_class.joblib'
-        self.scaler_path = '/home/wahba/Documents/nids5/test/model/binary/robust_scaler.joblib'
+        self.model_path1 = model_path1
+        self.model_path2 = '/home/wahba/Documents/nids5/test/model/multi_class/rf_multi_class.joblib'
         self.packets_count = 0
         self.output_writer = output_writer_factory(self.output_mode, self.output)
-
+        self.update_log_widget = update_log_widget
+        self.model1_mapping = {0: 'BENIGN', 1: 'Attack'}
+        self.model2_mapping = {0: 'DoS', 1: 'DDoS', 2: 'PortScan', 3: 'BruteForce', 4: 'WebAttack', 5: 'Bot'}
         # NEW: lock protecting self.flows
         self._lock = threading.Lock()
 
@@ -42,7 +43,6 @@ class FlowSession(DefaultSession):
             with self._lock:
                 self._model1 = joblib.load(self.model_path1)
                 self._model2 = joblib.load(self.model_path2)
-                self._scaler = joblib.load(self.scaler_path)
                
         except Exception as e:
             # Log model loading failure
@@ -159,18 +159,19 @@ class FlowSession(DefaultSession):
             if self._model1 is not None:
                 try:
                     df = pd.DataFrame([data])
-                    X = self._scaler.transform(df)
-
+                    X = df
                     model1_prediction = self._model1.predict(X)[0]
+                    model1_prediction = model1_prediction if isinstance(model1_prediction, str) else self.model1_mapping[model1_prediction]
 
                     if model1_prediction == "Attack":
                         model2_prediction = self._model2.predict(X)[0]
-                        prediction = model2_prediction
+                        prediction = model2_prediction if isinstance(model2_prediction, str) else self.model2_mapping[model2_prediction]
+                        self.update_log_widget(f"Detected Attack: {prediction} from IP Address {flow.src_ip}\n")
                     else:
                         prediction = model1_prediction
-                except Exception:
-                    prediction = "Error"
-                    
+                except Exception as e:
+                    prediction = f"Error" 
+
             data["Prediction"] = prediction
 
             # Now safely delete the entry under lock
@@ -181,7 +182,7 @@ class FlowSession(DefaultSession):
 
             # Finally write to output (IO outside the lock)
             self.output_writer.write(data)
-            self.logger.debug(f"Flow Collected! Remain Flows = {len(self.flows)}")
+            # self.logger.debug(f"Flow Collected! Remain Flows = {len(self.flows)}")
 
     def flush_flows(self):
         # Write all remaining flows to output (for end of sniffing)
