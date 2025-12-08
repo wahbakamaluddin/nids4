@@ -93,7 +93,7 @@ class NIDSGUI:
         # Network Interface - Compact
         ttk.Label(config_frame, text="Interface:").grid(row=0, column=0, sticky="w", padx=(0, 2))
         self.interface_entry = ttk.Entry(config_frame, width=12)
-        self.interface_entry.insert(0, "dummy0")
+        self.interface_entry.insert(0, "wlp0s20f3")
         self.interface_entry.grid(row=0, column=1, sticky="w", padx=(0, 10))
 
         # Model - Compact

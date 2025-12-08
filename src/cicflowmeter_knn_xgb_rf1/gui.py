@@ -6,8 +6,8 @@ import time
 import psutil
 from collections import deque
 from scapy.sendrecv import AsyncSniffer
-from cicflowmeter_knn1.flow_session import FlowSession
-from cicflowmeter_knn1.sniffer import _start_periodic_gc
+from cicflowmeter_knn_xgb_rf1.flow_session import FlowSession
+from cicflowmeter_knn_xgb_rf1.sniffer import _start_periodic_gc
 
 class NIDSGUI:
     def __init__(self):
