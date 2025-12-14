@@ -1,0 +1,18 @@
+name: ml1
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - jupyterlab
+  - joblib
+  - pandas
+  - numpy
+  - scapy
+  - scikit-learn=1.2.2
+  - netifaces
+  - xgboost
+  - matplotlib
+  - seaborn
+  - imbalanced-learn
+  - memory_profiler
+prefix: /home/wahba/miniconda3/envs/ml1
